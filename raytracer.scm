@@ -1,3 +1,28 @@
+;; A very basic raytracer example.
+;; Copyright (C) 2012  www.scratchapixel.com
+;; Scheme implementation by Toru Hisai @torus
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;; - changes 02/04/13: fixed flag in ofstream causing a bug under Windows,
+;; added default values for M_PI and INFINITY
+;; - changes 24/05/13: small change to way we compute the refraction direction
+;; vector (eta=ior if we are inside and 1/ior if we are outside the sphere)
+;;
+;; Scheme implementation
+;; - 06/20/14: translated for the Gauche Scheme interpreter
+
 (use srfi-1)
 
 (use gauche.collection)
@@ -43,31 +68,29 @@
   (define tnear +inf.0)
   (define sphere ())
   (let loop ((i 0))
-    (if (< i (size-of spheres))
-        (let ((t (intersect (ref spheres i) rayorig raydir)))
-          (when (not (null? t))
-            (let ((t0 (car t)) (t1 (cadr t)))
-              (when (< t0 0) (set! t0 t1))
-              (when (< t0 tnear)
-                (set! tnear t0)
-                (set! sphere (ref spheres i)))
-              (loop (+ i 1)))))))
+    (when (< i (size-of spheres))
+      (let ((t (intersect (ref spheres i) rayorig raydir)))
+        (when (not (null? t))
+          (let ((t0 (car t)) (t1 (cadr t)))
+            (when (< t0 0) (set! t0 t1))
+            (when (< t0 tnear)
+              (set! tnear t0)
+              (set! sphere (ref spheres i)))))
+        (loop (+ i 1)))))
 
   (if (null? sphere)
       (vector4f 2 2 2)
       (let* ((surface-color (vector4f 0 0 0))
              (phit (+ rayorig (* raydir tnear)))
-             (nhit (- phit (center-of sphere))))
-        (vector4f-normalize! nhit)
+             (nhit (vector4f-normalize (- phit (center-of sphere)))))
         (let ((bias 0.0001)
               (inside #f))
           (when (> (vector4f-dot raydir nhit) 0)
             (set! nhit (* nhit -1))
             (set! inside #t))
 
-          (if (and
-               (or (> (transparency-of sphere) 0) (> (reflection-of sphere) 0))
-               (< depth *max-ray-depth*))
+          (if (and (or (> (transparency-of sphere) 0) (> (reflection-of sphere) 0))
+                   (< depth *max-ray-depth*))
               (let* ((facingratio (- (vector4f-dot raydir nhit)))
                      (fresneleffect (mix (expt (- 1 facingratio) 3) 1 0.1))
                      (refldir (vector4f-normalize
@@ -75,12 +98,9 @@
                                   (* nhit
                                      (* 2 (vector4f-dot raydir nhit))))))
                      (reflection (trace (+ phit (* nhit bias))
-                                        refldir
-                                        spheres
-                                        (+ depth 1)))
-                     (refraction 0))
-                (unless
-                    (= (transparency-of sphere) 0)
+                                        refldir spheres (+ depth 1)))
+                     (refraction (vector4f 0 0 0)))
+                (unless (= (transparency-of sphere) 0)
                   (let* ((ior 1.1)
                          (eta (if inside ior (/ 1 ior)))
                          (cosi (- (vector4f-dot nhit raydir)))
@@ -100,27 +120,28 @@
                 )
               (let loop ((i 0))
                 (when (< i (size-of spheres))
-                  (let ((transmission 1)
-                        (light-direction (vector4f-normalize
-                                          (- (center-of (ref spheres i)) phit))))
-                    (let loop2 ((j 0))
-                      (unless (= i j)
-                        (let ((t (intersect (ref spheres j)
-                                            (+ phit (* nhit bias))
-                                            light-direction)))
-                          (if (null? t)
+                  (when (> (vector4f-ref (emission-color-of (ref spheres i)) 0) 0)
+                    (let ((transmission 1)
+                          (light-direction (vector4f-normalize
+                                            (- (center-of (ref spheres i)) phit))))
+                      (let loop2 ((j 0))
+                        (when (< j (size-of spheres))
+                          (if (= i j)
                               (loop2 (+ j 1))
-                              (set! transmission 0)))))
-                    (set! surface-color
-                          (+ surface-color
-                             (vec-* (* (* (surface-color-of sphere) transmission)
-                                       (max 0 (vector4f-dot nhit light-direction)))
-                                    (emission-color-of (ref spheres i)))))
-                    (loop (+ i 1))))
+                              (let ((t (intersect (ref spheres j)
+                                                  (+ phit (* nhit bias))
+                                                  light-direction)))
+                                (if (null? t)
+                                    (loop2 (+ j 1))
+                                    (set! transmission 0))))))
+                      (set! surface-color
+                            (+ surface-color
+                               (vec-* (* (* (surface-color-of sphere) transmission)
+                                         (max 0 (vector4f-dot nhit light-direction)))
+                                      (emission-color-of (ref spheres i)))))))
+                  (loop (+ i 1)))
                 ))
-          (+ surface-color (emission-color-of sphere)))
-        )
-      ))
+          (+ surface-color (emission-color-of sphere))))))
 
 (define (render spheres)
   (let* ((width 640)
@@ -134,16 +155,16 @@
          (angle (tan (/ (* *PI* 0.5 fov) 180))))
     (let loop-y ((y 0))
       (when (< y height)
-            (let loop-x ((x 0))
-              (when (< x width)
-                    (let ((xx (* 2 (- (* (+ x 0.5) inv-width) 1) angle aspectratio))
-                          (yy (* (- 1 (* 2 (* (+ y 0.5) inv-height))) angle)))
-                      (let ((raydir (vector4f-normalize (vector4f xx yy -1))))
-                        (vector-set! image pixel-index (trace (vector4f 0 0 0)
-                                                              raydir spheres 0))
-                        (inc! pixel-index)
-                        (loop-x (+ x 1))))))
-            (loop-y (+ y 1))))
+        (let loop-x ((x 0))
+          (when (< x width)
+            (let ((xx (* (- (* 2 (+ x 0.5) inv-width) 1) angle aspectratio))
+                  (yy (* (- 1 (* 2 (* (+ y 0.5) inv-height))) angle)))
+              (let ((raydir (vector4f-normalize (vector4f xx yy -1))))
+                (vector-set! image pixel-index (trace (vector4f 0 0 0)
+                                                      raydir spheres 0))
+                (inc! pixel-index)
+                (loop-x (+ x 1))))))
+        (loop-y (+ y 1))))
 
     (call-with-output-file "./untitled.ppm"
       (lambda (port)
