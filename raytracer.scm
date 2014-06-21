@@ -123,27 +123,28 @@
                     (size-of-spheres (size-of spheres)))
                 (let loop ((i 0))
                   (when (< i size-of-spheres)
-                    (when (> (vector4f-ref (sphere-emission-color (vector-ref spheres i)) 0) 0)
-                      (let ((transmission 1)
-                            (light-direction (vector4f-normalize
-                                              (- (sphere-center (vector-ref spheres i)) phit))))
-                        (let loop2 ((j 0))
-                          (when (< j size-of-spheres)
-                            (if (= i j)
-                                (loop2 (+ j 1))
-                                (let ((t (intersect (vector-ref spheres j)
-                                                    phit-bias
-                                                    light-direction)))
-                                  (if (null? t)
-                                      (loop2 (+ j 1))
-                                      (set! transmission 0))))))
-                        (set! surface-color
-                              (+ surface-color
-                                 (vec-* (* (* (sphere-surface-color sphere) transmission)
-                                           (max 0 (vector4f-dot nhit light-direction)))
-                                        (sphere-emission-color (vector-ref spheres i)))))))
-                    (loop (+ i 1)))
-                  )))
+                    (let ((ith-sphere (vector-ref spheres i)))
+                      (when (> (vector4f-ref (sphere-emission-color ith-sphere) 0) 0)
+                        (let ((transmission 1)
+                              (light-direction (vector4f-normalize
+                                                (- (sphere-center ith-sphere) phit))))
+                          (let loop2 ((j 0))
+                            (when (< j size-of-spheres)
+                              (if (= i j)
+                                  (loop2 (+ j 1))
+                                  (let ((t (intersect (vector-ref spheres j)
+                                                      phit-bias
+                                                      light-direction)))
+                                    (if (null? t)
+                                        (loop2 (+ j 1))
+                                        (set! transmission 0))))))
+                          (set! surface-color
+                                (+ surface-color
+                                   (vec-* (* (* (sphere-surface-color sphere) transmission)
+                                             (max 0 (vector4f-dot nhit light-direction)))
+                                          (sphere-emission-color ith-sphere))))))
+                      (loop (+ i 1)))
+                    ))))
           (+ surface-color (sphere-emission-color sphere))))))
 
 (define (render spheres)
