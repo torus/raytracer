@@ -27,34 +27,33 @@
 
 (use gauche.collection)
 (use gauche.uvector)
+(use gauche.record)
 (use gl.math3d)
 
 (define *max-ray-depth* 5)
 (define *PI* 3.141592653589793)
 
-(define-class <sphere> ()
-  ((center :init-keyword :center :accessor center-of)
-   (radius :init-keyword :radius :accessor radius-of)
-   radius2
-   (surface-color :init-keyword :surface-color :accessor surface-color-of)
-   (emission-color :init-value (vector4f 0 0 0)
-                   :init-keyword :emission-color :accessor emission-color-of)
-   (transparency :init-value 0 :init-keyword :transparency :accessor transparency-of)
-   (reflection :init-value 0 :init-keyword :reflection :accessor reflection-of)))
+(define-record-type sphere-type #t #f
+  (center sphere-center)
+  (radius sphere-radius)
+  (surface-color sphere-surface-color)
+  (reflection sphere-reflection)
+  (transparency sphere-transparency)
+  (emission-color sphere-emission-color)
+  (radius2 sphere-radius2))
 
-(define-method initialize ((self <sphere>) initargs)
-  (next-method)
-  (slot-set! self 'radius2 (* (radius-of self) (radius-of self))))
+(define (make-sphere c r sc :optional (refl 0) (transp 0) (ec (vector4f 0 0 0)))
+  (make-sphere-type c r sc refl transp ec (* r r)))
 
 (define (intersect self rayorig raydir)
-  (let* ((l (- (center-of self) rayorig))
+  (let* ((l (- (sphere-center self) rayorig))
          (tca (vector4f-dot l raydir)))
     (if (< tca 0)
         ()
         (let ((d2 (- (vector4f-dot l l) (* tca tca))))
-          (if (> d2 (slot-ref self 'radius2))
+          (if (> d2 (sphere-radius2 self))
               ()
-              (let ((thc (sqrt(- (slot-ref self 'radius2) d2))))
+              (let ((thc (sqrt(- (sphere-radius2 self) d2))))
                 (list (- tca thc) (+ tca thc))))))))
 
 (define (mix a b m)
@@ -82,14 +81,14 @@
       (vector4f 2 2 2)
       (let* ((surface-color (vector4f 0 0 0))
              (phit (+ rayorig (* raydir tnear)))
-             (nhit (vector4f-normalize (- phit (center-of sphere)))))
+             (nhit (vector4f-normalize (- phit (sphere-center sphere)))))
         (let ((bias 0.0001)
               (inside #f))
           (when (> (vector4f-dot raydir nhit) 0)
             (set! nhit (* nhit -1))
             (set! inside #t))
 
-          (if (and (or (> (transparency-of sphere) 0) (> (reflection-of sphere) 0))
+          (if (and (or (> (sphere-transparency sphere) 0) (> (sphere-reflection sphere) 0))
                    (< depth *max-ray-depth*))
               (let* ((facingratio (- (vector4f-dot raydir nhit)))
                      (fresneleffect (mix (expt (- 1 facingratio) 3) 1 0.1))
@@ -100,7 +99,7 @@
                      (reflection (trace (+ phit (* nhit bias))
                                         refldir spheres (+ depth 1)))
                      (refraction (vector4f 0 0 0)))
-                (unless (= (transparency-of sphere) 0)
+                (unless (= (sphere-transparency sphere) 0)
                   (let* ((ior 1.1)
                          (eta (if inside ior (/ 1 ior)))
                          (cosi (- (vector4f-dot nhit raydir)))
@@ -114,16 +113,16 @@
                 (set! surface-color (vec-* (+ (* reflection fresneleffect)
                                               (* refraction
                                                  (- 1 fresneleffect)
-                                                 (transparency-of sphere)))
-                                           (surface-color-of sphere)))
+                                                 (sphere-transparency sphere)))
+                                           (sphere-surface-color sphere)))
 
                 )
               (let loop ((i 0))
                 (when (< i (size-of spheres))
-                  (when (> (vector4f-ref (emission-color-of (ref spheres i)) 0) 0)
+                  (when (> (vector4f-ref (sphere-emission-color (ref spheres i)) 0) 0)
                     (let ((transmission 1)
                           (light-direction (vector4f-normalize
-                                            (- (center-of (ref spheres i)) phit))))
+                                            (- (sphere-center (ref spheres i)) phit))))
                       (let loop2 ((j 0))
                         (when (< j (size-of spheres))
                           (if (= i j)
@@ -136,12 +135,12 @@
                                     (set! transmission 0))))))
                       (set! surface-color
                             (+ surface-color
-                               (vec-* (* (* (surface-color-of sphere) transmission)
+                               (vec-* (* (* (sphere-surface-color sphere) transmission)
                                          (max 0 (vector4f-dot nhit light-direction)))
-                                      (emission-color-of (ref spheres i)))))))
+                                      (sphere-emission-color (ref spheres i)))))))
                   (loop (+ i 1)))
                 ))
-          (+ surface-color (emission-color-of sphere))))))
+          (+ surface-color (sphere-emission-color sphere))))))
 
 (define (render spheres)
   (let* ((width 640)
@@ -189,21 +188,14 @@
 (define (main . argv)
   (let1 spheres
         (vector
-         (make <sphere> :center (vector4f 0 -10004 -20) :radius 10000
-               :surface-color (vector4f 0.2 0.2 0.2) :reflection 0 :transparency 0)
-         (make <sphere> :center (vector4f 0 0 -20) :radius 4
-               :surface-color (vector4f 1 0.32 0.36) :reflection 1 :transparency 0.5)
-         (make <sphere> :center (vector4f 5 -1 -15) :radius 2
-               :surface-color (vector4f 0.9 0.76 0.46) :reflection 1 :transparency 0)
-         (make <sphere> :center (vector4f 5 0 -25) :radius 3
-               :surface-color (vector4f 0.65 0.77 0.97) :reflection 1 :transparency 0)
-         (make <sphere> :center (vector4f -5.5 0 -15) :radius 3
-               :surface-color (vector4f 0.90 0.90 0.90) :reflection 1 :transparency 0)
+         (make-sphere (vector4f 0 -10004 -20) 10000 (vector4f 0.2 0.2 0.2) 0 0)
+         (make-sphere (vector4f 0 0 -20) 4 (vector4f 1 0.32 0.36) 1 0.5)
+         (make-sphere (vector4f 5 -1 -15) 2 (vector4f 0.9 0.76 0.46) 1 0)
+         (make-sphere (vector4f 5 0 -25) 3 (vector4f 0.65 0.77 0.97) 1 0)
+         (make-sphere (vector4f -5.5 0 -15) 3 (vector4f 0.90 0.90 0.90) 1 0)
 
          ;; light
-         (make <sphere> :center (vector4f 0 20 -30) :radius 3
-               :surface-color (vector4f 0 0 0) :reflection 0 :transparency 0
-               :emission-color (vector4f 3 3 3))
+         (make-sphere (vector4f 0 20 -30) 3 (vector4f 0 0 0) 0 0 (vector4f 3 3 3))
          )
         (render spheres))
   )
