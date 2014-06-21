@@ -152,12 +152,10 @@
           (+ surface-color (sphere-emission-color sphere))))))
 
 (define (render spheres)
-  (let* ((width 640)
-         (height 480)
+  (let* ((width 640) (height 480)
          (image (make-vector (* width height)))
          (pixel-index 0)
-         (inv-width (/ 1 width))
-         (inv-height (/ 1 height))
+         (inv-width (/ 1 width)) (inv-height (/ 1 height))
          (fov 30)
          (aspectratio (/ width height))
          (angle (tan (/ (* *PI* 0.5 fov) 180))))
@@ -175,23 +173,19 @@
                 (loop-x (+ x 1))))))
         (loop-y (+ y 1))))
 
-    (call-with-output-file "./untitled.ppm"
-      (lambda (port)
-        (display "P6\n" port)
-        (display width port)
-        (display " " port)
-        (display height port)
-        (display "\n255\n" port)
+        (display "P6\n")
+        (display width)
+        (display " ")
+        (display height)
+        (display "\n255\n")
         (let loop ((i 0))
           (when (< i (* width height))
                 (write-block
                  (u8vector
                   (floor (* (min 1 (vector4f-ref (vector-ref image i) 0)) 255))
                   (floor (* (min 1 (vector4f-ref (vector-ref image i) 1)) 255))
-                  (floor (* (min 1 (vector4f-ref (vector-ref image i) 2)) 255)))
-                 port)
+                  (floor (* (min 1 (vector4f-ref (vector-ref image i) 2)) 255))))
                 (loop (+ i 1))))
-        ))
     )
   )
 
@@ -208,4 +202,5 @@
          (make-sphere (vector4f 0 20 -30) 3 (vector4f 0 0 0) 0 0 (vector4f 3 3 3))
          )
         (render spheres))
-  )
+
+  0)
