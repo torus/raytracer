@@ -60,8 +60,10 @@
   (+ (* b m) (* a (- 1 m))))
 
 (define (vec-* vec1 vec2)
-  (list->vector4f (map (lambda (e) (* (car e) (cadr e)))
-                       (zip (vector4f->list vec1) (vector4f->list vec2)))))
+  (vector4f (* (vector4f-ref vec1 0) (vector4f-ref vec2 0))
+            (* (vector4f-ref vec1 1) (vector4f-ref vec2 1))
+            (* (vector4f-ref vec1 2) (vector4f-ref vec2 2))
+            (* (vector4f-ref vec1 3) (vector4f-ref vec2 3))))
 
 (define (trace rayorig raydir spheres depth)
   (define tnear +inf.0)
