@@ -127,7 +127,7 @@
                     (let* ((ith-sphere (vector-ref spheres i))
                            (emission-color (sphere-emission-color ith-sphere)))
                       (when (> (vector4f-ref emission-color 0) 0)
-                        (let ((transmission 1)
+                        (let ((transmission #t)
                               (light-direction (- (sphere-center ith-sphere) phit)))
                           (vector4f-normalize! light-direction)
                           (let loop2 ((j 0))
@@ -139,12 +139,14 @@
                                                       light-direction)))
                                     (if (null? t)
                                         (loop2 (+ j 1))
-                                        (set! transmission 0))))))
+                                        (set! transmission #f))))))
                           (vector4f-add!
                            surface-color
-                           (vec-* (* (* (sphere-surface-color sphere) transmission)
-                                     (max 0 (vector4f-dot nhit light-direction)))
-                                                emission-color))))
+                           (if transmission
+                               (vec-* (* (sphere-surface-color sphere)
+                                         (max 0 (vector4f-dot nhit light-direction)))
+                                      emission-color)
+                               (vector4f 0 0 0)))))
                       (loop (+ i 1)))
                     ))))
           (+ surface-color (sphere-emission-color sphere))))))
