@@ -46,7 +46,7 @@
   (next-method)
   (slot-set! self 'radius2 (* (radius-of self) (radius-of self))))
 
-(define-method intersect ((self <sphere>) rayorig raydir)
+(define (intersect self rayorig raydir)
   (let* ((l (- (center-of self) rayorig))
          (tca (vector4f-dot l raydir)))
     (if (< tca 0)
