@@ -123,8 +123,9 @@
                     (size-of-spheres (size-of spheres)))
                 (let loop ((i 0))
                   (when (< i size-of-spheres)
-                    (let ((ith-sphere (vector-ref spheres i)))
-                      (when (> (vector4f-ref (sphere-emission-color ith-sphere) 0) 0)
+                    (let* ((ith-sphere (vector-ref spheres i))
+                           (emission-color (sphere-emission-color ith-sphere)))
+                      (when (> (vector4f-ref emission-color 0) 0)
                         (let ((transmission 1)
                               (light-direction (vector4f-normalize
                                                 (- (sphere-center ith-sphere) phit))))
@@ -142,7 +143,7 @@
                            surface-color
                            (vec-* (* (* (sphere-surface-color sphere) transmission)
                                      (max 0 (vector4f-dot nhit light-direction)))
-                                                (sphere-emission-color ith-sphere)))))
+                                                emission-color))))
                       (loop (+ i 1)))
                     ))))
           (+ surface-color (sphere-emission-color sphere))))))
