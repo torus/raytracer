@@ -138,11 +138,11 @@
                                     (if (null? t)
                                         (loop2 (+ j 1))
                                         (set! transmission 0))))))
-                          (set! surface-color
-                                (+ surface-color
-                                   (vec-* (* (* (sphere-surface-color sphere) transmission)
-                                             (max 0 (vector4f-dot nhit light-direction)))
-                                          (sphere-emission-color ith-sphere))))))
+                          (vector4f-add!
+                           surface-color
+                           (vec-* (* (* (sphere-surface-color sphere) transmission)
+                                     (max 0 (vector4f-dot nhit light-direction)))
+                                                (sphere-emission-color ith-sphere)))))
                       (loop (+ i 1)))
                     ))))
           (+ surface-color (sphere-emission-color sphere))))))
