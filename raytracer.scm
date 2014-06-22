@@ -28,10 +28,14 @@
 (use gauche.collection)
 (use gauche.uvector)
 (use gauche.record)
+(use gauche.parseopt)
 (use gl.math3d)
 
-(define *max-ray-depth* 5)
-(define *PI* 3.141592653589793)
+(define-constant *max-ray-depth* 5)
+(define-constant *PI* 3.141592653589793)
+(define-constant *ior* 1.1)
+(define-constant *inv-ior* (/ 1 1.1))
+(define-constant *bias* 0.0001)
 
 (define-record-type sphere-type #t #f
   (center sphere-center)
@@ -65,24 +69,23 @@
             (* (vector4f-ref vec1 2) (vector4f-ref vec2 2))
             (* (vector4f-ref vec1 3) (vector4f-ref vec2 3))))
 
-(define (xxxxx surface-color spheres sphere raydir phit nhit bias inside depth)
+(define (xxxxx surface-color spheres sphere raydir phit nhit inside depth)
   (let* ((facingratio (- (vector4f-dot raydir nhit)))
          (fresneleffect (mix (expt (- 1 facingratio) 3) 1 0.1))
          (refldir (- raydir
                      (* nhit
                         (* 2 (vector4f-dot raydir nhit))))))
     (vector4f-normalize! refldir)
-    (let ((reflection (trace (+ phit (* nhit bias))
+    (let ((reflection (trace (+ phit (* nhit *bias*))
                              refldir spheres (+ depth 1)))
           (refraction (vector4f 0 0 0)))
       (unless (= (sphere-transparency sphere) 0)
-        (let* ((ior 1.1)
-               (eta (if inside ior (/ 1 ior)))
+        (let* ((eta (if inside *ior* *inv-ior*))
                (cosi (- (vector4f-dot nhit raydir)))
                (k (- 1 (* eta eta (- 1 (* cosi cosi)))))
                (refrdir (+ (* raydir eta) (* nhit (- (* eta cosi) (sqrt k))))))
           (vector4f-normalize! refrdir)
-          (set! refraction (trace (- phit (* nhit bias))
+          (set! refraction (trace (- phit (* nhit *bias*))
                                   refrdir spheres
                                   (+ depth 1)))
           ))
@@ -99,8 +102,8 @@
       ))
   )
 
-(define (yyyyy surface-color spheres sphere phit nhit bias)
-  (let ((phit-bias (+ phit (* nhit bias)))
+(define (yyyyy surface-color spheres sphere phit nhit)
+  (let ((phit-bias (+ phit (* nhit *bias*)))
         (size-of-spheres (size-of spheres)))
     (let loop ((i 0))
       (when (< i size-of-spheres)
@@ -120,13 +123,12 @@
                         (if (null? t)
                             (loop2 (+ j 1))
                             (set! transmission #f))))))
-              (vector4f-add!
-               surface-color
-               (if transmission
-                   (vec-* (* (sphere-surface-color sphere)
-                             (max 0 (vector4f-dot nhit light-direction)))
-                          emission-color)
-                   (vector4f 0 0 0)))))
+              (when transmission
+                (vector4f-add!
+                 surface-color
+                 (vec-* (* (sphere-surface-color sphere)
+                           (max 0 (vector4f-dot nhit light-direction)))
+                        emission-color)))))
           (loop (+ i 1)))
         ))))
 
@@ -150,31 +152,35 @@
              (phit (+ rayorig (* raydir tnear)))
              (nhit (- phit (sphere-center sphere))))
         (vector4f-normalize! nhit)
-        (let ((bias 0.0001)
-              (inside #f))
+        (let ((inside #f))
           (when (> (vector4f-dot raydir nhit) 0)
             (set! nhit (* nhit -1))
             (set! inside #t))
 
-          (if (and (or (> (sphere-transparency sphere) 0) (> (sphere-reflection sphere) 0))
+          (if (and (or (> (sphere-transparency sphere) 0)
+                       (> (sphere-reflection sphere) 0))
                    (< depth *max-ray-depth*))
-              (xxxxx surface-color spheres sphere raydir phit nhit bias inside depth)
-              (yyyyy surface-color spheres sphere phit nhit bias)
-              )
+              (xxxxx surface-color spheres sphere raydir phit nhit inside depth)
+              (yyyyy surface-color spheres sphere phit nhit))
           (+ surface-color (sphere-emission-color sphere))))))
 
-(define (render spheres)
-  (let* ((width 640) (height 480)
-         (image (make-vector (* width height)))
+(define (render spheres size frame)
+  (let* ((width (car size))
+         (height (cadr size))
+         (window-top (car frame))
+         (window-left (cadr frame))
+         (window-width (caddr frame))
+         (window-height (cadddr frame))
+         (image (make-vector (* window-width window-height)))
          (pixel-index 0)
          (inv-width (/ 1 width)) (inv-height (/ 1 height))
          (fov 30)
          (aspectratio (/ width height))
          (angle (tan (/ (* *PI* 0.5 fov) 180))))
-    (let loop-y ((y 0))
-      (when (< y height)
-        (let loop-x ((x 0))
-          (when (< x width)
+    (let loop-y ((y window-top))
+      (when (< y (+ window-top window-height))
+        (let loop-x ((x window-left))
+          (when (< x (+ window-left window-width))
             (let ((xx (* (- (* 2 (+ x 0.5) inv-width) 1) angle aspectratio))
                   (yy (* (- 1 (* 2 (* (+ y 0.5) inv-height))) angle)))
               (let ((raydir (vector4f xx yy -1)))
@@ -186,12 +192,12 @@
         (loop-y (+ y 1))))
 
         (display "P6\n")
-        (display width)
+        (display window-width)
         (display " ")
-        (display height)
+        (display window-height)
         (display "\n255\n")
         (let loop ((i 0))
-          (when (< i (* width height))
+          (when (< i (* window-width window-height))
                 (write-block
                  (u8vector
                   (floor (* (min 1 (vector4f-ref (vector-ref image i) 0)) 255))
@@ -201,7 +207,7 @@
     )
   )
 
-(define (main . argv)
+(define (main args)
   (let1 spheres
         (vector
          (make-sphere (vector4f 0 -10004 -20) 10000 (vector4f 0.2 0.2 0.2) 0 0)
@@ -213,6 +219,9 @@
          ;; light
          (make-sphere (vector4f 0 20 -30) 3 (vector4f 0 0 0) 0 0 (vector4f 3 3 3))
          )
-        (render spheres))
+    (let-args (cdr args)
+        ((size "s|size=ii" `(640 480))
+         (frame "f|frame=iiii" `(0 0 640 480)))
+      (render spheres size frame)))
 
   0)
