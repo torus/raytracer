@@ -18,6 +18,10 @@
             [opt-frame (if param-frame #`"-f ,param-frame" "")]
             [outfile #`"out,(random-integer 1000000).jpg"])
         (sys-system
-         #?=#`"gosh raytracer.scm ,opt-size ,opt-frame | ppmtojpeg -quality 100 > ,outfile")
+         #`"gosh raytracer.scm ,opt-size ,opt-frame | ppmtojpeg -quality 100 > ,outfile")
         (respond/ok req `(file ,outfile) :content-type "image/jpg")
       ))))
+
+(define-http-handler "/exit"
+  (^[req app]
+    (sys-exit 0)))
