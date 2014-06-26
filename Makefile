@@ -1,4 +1,4 @@
-jpag: result.jpg
+jpeg: result.jpg
 
 %.jpg: %.ppm
 	ppmtojpeg -quality 100 $^ > $@
