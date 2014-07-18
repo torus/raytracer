@@ -6,7 +6,8 @@
 (define (main args)
   (let-args (cdr args) ([port "p|port=i" 8012])
     (start-http-server :access-log #t :error-log #t :port port
-                       :app-data (atom '())))
+                       :app-data (atom '())
+                       :document-root "./public"))
   0)
 
 (define-http-handler "/render.jpg"
@@ -72,3 +73,5 @@
                )))
 
     )))
+
+(define-http-handler #// (file-handler))

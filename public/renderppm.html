@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>render</title>
+  </head>
+  <body>
+    <canvas id="field"></canvas>
+
+<script type="text/javascript" src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+<script type="text/javascript">
+console.log("!!")
+
+$("body").ready(function() {
+    // console.log("ready")
+    // $.ajax("/render.ppm?size=64+64&frame=0+32+64+8", {
+    //     // contentType: "arraybuffer",
+    // })
+    //     .done(function(data) {
+    //         // console.debug(data)
+    //         var blob = new Blob([data], {type: "image/x-portable-pixmap"})
+    //         console.debug(blob)
+    //         // var arr = new Uint8Array(data)
+    //         // console.debug(arr)
+    //     })
+
+    var size = {width: 640, height: 480}
+
+    var canvas = document.getElementById("field")
+    canvas.width = size.width
+    canvas.height = size.height
+
+    for (var i = 0; i < size.height / 8; i ++) {
+        var frame = {top: i * 8, left: 0, width: size.width, height: 8}
+        load_ppm(size, frame, canvas)
+    }
+})
+
+function load_ppm(size, frame, canvas) {
+    var oReq = new XMLHttpRequest();
+    oReq.open("GET", "/render.ppm?size=" + [size.width, size.height].join("+")
+              + "&frame=" + [frame.left, frame.top, frame.width, frame.height].join("+"),
+              true);
+    oReq.responseType = "arraybuffer";
+
+    oReq.onload = function (oEvent) {
+        var arrayBuffer = oReq.response; // Note: not oReq.responseText
+
+       if (arrayBuffer) {
+            var byteArray = new Uint8Array(arrayBuffer);
+            render_ppm(byteArray, frame, canvas)
+        }
+    };
+
+    oReq.send(null);
+}
+
+function render_ppm(buf, frame, canvas) {
+    var pos = 0
+    var ch = function(code) {
+        return String.fromCharCode(code)
+    }
+    while (ch(buf[pos]).match(/[P6]/)) {pos ++} // P6
+    while (ch(buf[pos]).match(/\s/)) {pos ++}
+    while (ch(buf[pos]).match(/[0-9]/)) {pos ++} // width
+    while (ch(buf[pos]).match(/\s/)) {pos ++}
+    while (ch(buf[pos]).match(/[0-9]/)) {pos ++} // height
+    while (ch(buf[pos]).match(/\s/)) {pos ++}
+    while (ch(buf[pos]).match(/[0-9]/)) {pos ++} // max value
+    pos ++                                       // single white space
+
+    var ctx = canvas.getContext("2d")
+    var img = ctx.getImageData(frame.left, frame.top, frame.width, frame.height)
+    var imgdata = img.data
+    var datpos = 0
+    for (var row = 0; row < frame.height; row ++) {
+        for (var col = 0; col < frame.width; col ++) {
+            for (var idx = 0; idx < 3; idx ++) {
+                // console.log(buf[pos])
+                imgdata[datpos ++] = buf[pos ++]
+            }
+            imgdata[datpos ++] = 255
+        }
+    }
+
+    ctx.putImageData(img, frame.left, frame.top)
+}
+
+
+
+
+
+
+
+
+
+</script>
+
+  </body>
+</html>
+
+
+<!--
+Local Variables:
+mode: javascript
+End:
+-->
