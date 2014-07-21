@@ -2,4 +2,5 @@
 
 (define (main . args)
   (let1 json (parse-json)
-    (display (assoc-ref (assoc-ref json "blob") "url"))))
+    (display (assoc-ref (assoc-ref json "blob") "url")))
+  0)

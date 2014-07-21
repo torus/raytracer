@@ -1,6 +1,8 @@
 APPNAME = 
 
-test: jpeg
+SOURCES = index.scm raytracer.scm public
+
+test:
 
 heroku-login:
 	heroku login
@@ -14,13 +16,37 @@ extract-slug-id: slug.json
 extract-slug-url: slug.json
 	echo `gosh extract-slug-url.scm < slug.json`
 
-slug.json:
+slug.tgz: $(SOURCES)
+	rm -rf app
+	mkdir app
+	cp -R ~/src/docker/gauche/app/gauche app/gauche
+	cp -R $(SOURCES) app/
+	tar cfz $@ ./app
+
+slug.json: slug.tgz
 	[ "x$(APPNAME)" != "x" ]
 	curl -X POST \
 	-H 'Content-Type: application/json' \
 	-H 'Accept: application/vnd.heroku+json; version=3' \
-	-d '{"process_types":{"web":"env LD_LIBRARY_PATH=./gauche/lib ./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.4_pre3/lib -I ./gauche/lib/gauche-0.9/0.9.4_pre3/x86_64-unknown-linux-gnu/ ./makiki/examples/basic.scm --port=$PORT"}}' \
+	-d '{"process_types":{"web":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.4/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.4/x86_64-unknown-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-unknown-linux-gnu/ -I ./ index.scm --port=$$PORT"}}' \
 	-n https://api.heroku.com/apps/$(APPNAME)/slugs > $@
+
+upload-slug: slug.json
+	curl -X PUT \
+	-H "Content-Type:" \
+	--data-binary @slug.tgz \
+	`gosh extract-slug-url.scm < slug.json`
+	gosh extract-slug-url.scm < slug.json > $@
+	date >> $@
+
+release: upload-slug
+	[ "x$(APPNAME)" != "x" ]
+	heroku config:set LD_LIBRARY_PATH=./gauche/lib --app=$(APPNAME)
+	curl -X POST \
+	-H "Accept: application/vnd.heroku+json; version=3" \
+	-H "Content-Type: application/json" \
+	-d '{"slug":"'`gosh extract-slug-id.scm < slug.json`'"}' \
+	-n https://api.heroku.com/apps/$(APPNAME)/releases > $@
 
 jpeg: result.jpg
 
