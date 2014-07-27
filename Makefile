@@ -2,7 +2,8 @@ APPNAME =
 
 SOURCES = index.scm raytracer.scm public
 
-test:
+usage:
+	@echo Usage: make release APPNAME=gauche-raytracer
 
 heroku-login:
 	heroku login
@@ -16,12 +17,18 @@ extract-slug-id: slug.json
 extract-slug-url: slug.json
 	echo `gosh extract-slug-url.scm < slug.json`
 
-slug.tgz: $(SOURCES)
+slug.tgz: $(SOURCES) ../docker/gauche/app/gauche
 	rm -rf app
 	mkdir app
-	cp -R ~/src/docker/gauche/app/gauche app/gauche
+	cp -R ../docker/gauche/app/gauche app/gauche
 	cp -R $(SOURCES) app/
 	tar cfz $@ ./app
+
+rebuild-slug:
+	$(MAKE) -C ../docker/gauche
+
+../docker/gauche/app/gauche:
+	$(MAKE) -C ../docker/gauche
 
 slug.json: slug.tgz
 	[ "x$(APPNAME)" != "x" ]
@@ -57,4 +64,4 @@ result.ppm: raytracer.scm
 	gosh raytracer.scm > $@
 
 clean:
-	rm -f *.jpg *.ppm out*.jpg
+	rm -f *.jpg *.ppm out*.jpg release upload-slug slug.tgz slug.json *~
