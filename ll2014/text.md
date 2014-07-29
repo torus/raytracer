@@ -8,7 +8,19 @@ Lightweight Language Diver 2014
 
 ---
 
-# Heroku
+# あらすじ
+
+1.  Heroku のしくみ
+2.  Docker でビルド
+3.  Gauche でウェブアプリ
+
+---
+
+# <img src="https://d1lpkba4w1baqt.cloudfront.net/heroku-logo-light-300x100.png" />
+
+（関係者の方いたらツッコミお願いします）
+
+.fx: titleslide
 
 ---
 
@@ -34,41 +46,36 @@ Lightweight Language Diver 2014
 
 ---
 
-# Heroku の構造
+# そこをなんとか……！
 
-<!--
-- アプリケーション
-- Cedar Stack
-- Dyno
-- Heroku
--->
+---
 
-<img src="./Earth-crust-cutaway-english.svg" />
+<img src="./Earth-crust-cutaway-heroku.svg" />
 
 .fx: imageslide
 
 ---
 
 # The Celadon Cedar Stack
--   Heroku の標準スタック
-    -   ベース OS
+-   Heroku のデフォルトスタック
+    -   ベース OS: Ubuntu 10.04
     -   ライブラリ
     -   言語実行ランタイム
--   Ubuntu 10.04
--   自分でコンパイルすれば大抵使える
--   (図)
+-   この上にのせれば動く……！
 
 ---
 
-# Docker を使うと簡単
--   Docker → tar archive → ホストに転送
--   (図)
+# Slug
+（ナメクジ？）
+
+.fx: titleslide
 
 ---
 
 # Slug
 -   実行可能な Cedar アプリケーションを tar アーカイブしたもの
--   約束はこれだけ：
+-   これが Dyno にのっかる
+-   作成時の約束はこれだけ：
     -   ディレクトリ名：app
     -   tar のコマンドライン：tar czfv slug.tgz ./app
         -   ./ が重要！
@@ -76,12 +83,34 @@ Lightweight Language Diver 2014
 ---
 
 # デプロイ、リリース
+-   （図）ソース→バイナリ→Slug→Heroku
 -   Slug アーカイブをアップロードすると自動的にデプロイされる
     -   Ubuntu 10.04 でコンパイル
-        -   glibc のバージョンなどが重要
     -   tar でアーカイブ
     -   Web API でアップロード
     -   Web API でリリース
+
+---
+
+# しかし
+-   Mac でプログラムをコンパイルしても動かない
+    -   バイナリの形式が違う
+-   Ubuntu 14.04 でコンパイルしても動かない
+    -   glibc のバージョンが違う
+-   そのために Ubuntu 10.04 をインストールするとかめんどくさい
+-   そこで……
+
+---
+
+<img src="./large_v-trans.png" />
+
+.fx: imageslide
+
+---
+
+# Docker を使うと簡単
+-   Docker → tar archive → ホストに転送
+-   (図)
 
 ---
 

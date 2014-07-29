@@ -1,4 +1,8 @@
-all: ll2014-gauche-on-heroku.pdf
+
+presentation.html: text.md
+	landslide presentation.cfg
+
+open-pdf: ll2014-gauche-on-heroku.pdf
 	open ll2014-gauche-on-heroku.pdf
 
 %.dvi: %.tex
