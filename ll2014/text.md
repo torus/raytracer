@@ -146,7 +146,8 @@ Lightweight Language Diver 2014
 
 ## Dockerfile
 
-仮想マシンのイメージを作る。
+仮想マシンにいろいろインストールして<br/>
+イメージを作る。
 
 -   Ubuntu 10.04
 -   Gauche 0.9.4 & HEAD
@@ -157,6 +158,7 @@ Lightweight Language Diver 2014
 
 ## Dockerfile - Ubuntu 10.04
 
+    !sh
     FROM ubuntu:10.04
     MAINTAINER Toru Hisai <toru@torus.jp>
     
@@ -169,6 +171,7 @@ Lightweight Language Diver 2014
 
 ## Dockerfile - Gauche 0.9.4
 
+    !sh
     WORKDIR /tmp
     RUN wget http://prdownloads.sourceforge.net/
                             gauche/Gauche-0.9.4.tgz
@@ -186,6 +189,7 @@ Lightweight Language Diver 2014
 
 （あらかじめ GitHub からクローンしておく）
 
+    !sh
     ADD Gauche /tmp/Gauche
     WORKDIR /tmp/Gauche
     RUN ./DIST gen
@@ -201,6 +205,7 @@ Lightweight Language Diver 2014
 
 （あらかじめ GitHub からクローンしておく）
 
+    !sh
     ADD Gauche-makiki /tmp/Gauche-makiki
     WORKDIR /tmp/Gauche-makiki
     RUN ./DIST gen
@@ -215,6 +220,7 @@ Lightweight Language Diver 2014
 
 （あらかじめ GitHub からクローンしておく）
 
+    !sh
     ADD Gauche-gl /tmp/Gauche-gl
     WORKDIR /tmp/Gauche-gl
     RUN ./DIST gen
@@ -227,21 +233,26 @@ Lightweight Language Diver 2014
 
 ## Dockerfile - バイナリ生成
 
--   エントリーポイントでバイナリをダンプする
+エントリーポイントでバイナリをダンプする。
 
-        WORKDIR /opt
-        ENTRYPOINT tar cf - gauche
+    !sh
+    WORKDIR /opt
+    ENTRYPOINT tar cf - gauche
 
--   Docker コンテナ → ホストにコピー
+Docker コンテナ → ホストにコピー。</br>
+（ホスト側のシェルで）
 
-        $ docker run gauche_heroku_app |\
-                         (cd app && tar xvf -)
+    !sh
+    $ docker build -t gauche_heroku_app .
+    $ docker run gauche_heroku_app |\
+                     (cd app && tar xvf -)
 
 ---
 
 # Gauche <small>でウェブアプリ</small>
 
-.fx: titleslide
+<img src="./1280px-Makiki-Agriculturebldg-courtyard.jpg" />
+
 
 ---
 
@@ -303,6 +314,7 @@ Lightweight Language Diver 2014
 
 <!-- dummy -->
 
+    !javascript
     {"process_types":
       {"web":"./gauche/bin/gosh
           -I ./gauche/share/gauche-0.9/0.9.4/lib
@@ -370,11 +382,12 @@ Lightweight Language Diver 2014
 ## 環境変数の設定
 
 -   環境変数 `LD_LIBRARY_PATH` を設定
--   Gauche のライブラリがリンクできるように
--   相対パスになってるのがミソ
+    -   Gauche のライブラリがリンクできるように
+    -   相対パスになってるのがミソ
 
 <!-- dummy -->
 
+    !sh
    	$ heroku config:set LD_LIBRARY_PATH=./gauche/lib \
         --app=$APPNAME
 
@@ -404,13 +417,13 @@ Lightweight Language Diver 2014
 
 ---
 
-# レイトレーサの原理
+## レイトレーサの原理
 
 <img src="./Ray_trace_diagram.svg" />
 
 ---
 
-# 分散レイトレーシング
+## 分散レイトレーシング
 -   スクリーンを分割してレンダリング
 -   ベクトル計算に Gauche-gl を使用
 
