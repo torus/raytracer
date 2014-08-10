@@ -354,18 +354,53 @@ Lightweight Language Diver 2014
 
 ---
 
-# Dyno
--   Dyno を増やすと簡単にスケールアウト
--   秒単位で料金精算
-    -   $.05/時間
-    -   1 アプリにつき 750 dyno 時間/月は無料
-    -   One-off dyno は別途料金がかかる
+## Slug アップロード
+
+    !make
+    upload-slug: slug.json
+    	curl -X PUT \
+    	-H "Content-Type:" \
+    	--data-binary @slug.tgz \
+    	`gosh extract-slug-url.scm < slug.json`
+
+-   `extract-slug-url.scm` は先のレスポンスから `blob` の `url` を取り出す
+    -   `https://s3-external-1.amazonaws.com/herokuslugs/...`
+
+---
+## 環境変数の設定
+
+-   環境変数 `LD_LIBRARY_PATH` を設定
+-   Gauche のライブラリがリンクできるように
+-   相対パスになってるのがミソ
+
+<!-- dummy -->
+
+   	$ heroku config:set LD_LIBRARY_PATH=./gauche/lib \
+        --app=$APPNAME
 
 ---
 
-# 分散レイトレーシング
--   スクリーンを分割してレンダリング
--   ベクトル計算に Gauche-gl を使用
+## リリース
+
+    !make
+    release: upload-slug
+    	curl -X POST \
+    	-H "Accept: application/vnd.heroku+json; version=3" \
+    	-H "Content-Type: application/json" \
+    	-d '{"slug":"'`gosh extract-slug-id.scm \
+                                        < slug.json`'"}' \
+    	-n https://api.heroku.com/apps/$(APPNAME)/releases
+
+-   `extract-slug-id.scm` は先のレスポンスから Slug の ID を取り出す
+    -   `7e4d9819-833f-4aec-9d6f-...`
+
+---
+
+# デモ
+
+（Slug のアップロードとリリース）
+
+.fx: titleslide
 
 ---
 
@@ -375,8 +410,59 @@ Lightweight Language Diver 2014
 
 ---
 
-# 参考資料
+# 分散レイトレーシング
+-   スクリーンを分割してレンダリング
+-   ベクトル計算に Gauche-gl を使用
+
+---
+
+# デモ
+[gauche-raytracer.herokuapp.com/renderppm.html](http://gauche-raytracer.herokuapp.com/renderppm.html)
+
+.fx: titleslide
+
+---
+
+# Dyno
+-   Dyno を増やすと簡単にスケールアウト
+-   秒単位で料金精算
+    -   $.05/時間
+    -   1 アプリにつき 750 dyno 時間/月は無料
+    -   One-off dyno は別途料金がかかる
+
+---
+
+# デモ
+[dashboard.heroku.com](https://dashboard.heroku.com/apps/gauche-raytracer/resources)
+
+.fx: titleslide
+
+---
+
+# 別の方法
+
+-   Buildpack を作る
+    -   Git でデプロイできるようになる
+    -   しょっちゅうリビルドする場合は却って面倒
+
+---
+
+# まとめ
+
+-   Heroku は割となんでも動かせる
+-   Docker を使えばビルドもらくちん
+-   使わないときはこまめに Dyno を消しておく
+    -   料金が節約できる
+-   ソースコード：
+    -   https://github.com/torus/raytracer
+    -   https://github.com/torus/gauche-heroku-cedar
+
+---
+
+# 参考資料：
 
 -   [Creating slugs from scratch | Heroku Dev Center](https://devcenter.heroku.com/articles/platform-api-deploying-slugs)
+-   [Usage & Billing | Heroku Dev Center](https://devcenter.heroku.com/articles/usage-and-billing)
 -   [Dockerfile - Docker Documentation](https://docs.docker.com/reference/builder/)
 -   [Lesson 1: Writing a Simple Raytracer » www.scratchapixel.com](http://scratchapixel.com/lessons/3d-basic-lessons/lesson-1-writing-a-simple-raytracer/)
+-   [Gauche on Heroku - ellipsis](http://nazuma.hatenablog.com/entry/2012/12/08/014436)
