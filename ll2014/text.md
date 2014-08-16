@@ -55,6 +55,10 @@ Lightweight Language Diver 2014
 
 ---
 
+<img src="./4822249468.jpg" />
+
+---
+
 <img src="./aa-saikai.png"/>
 
 .fx: titleslide
@@ -93,14 +97,14 @@ Lightweight Language Diver 2014
 
 ## アーカイブ
 
-<img src="./archiving-slug.svg" />
+<img src="./archiving-slug.png" />
 
 
 ---
 
 ## Cedar Stack に載せる
 
-<img src="./slug-on-heroku.svg" />
+<img src="./slug-on-heroku.png" />
 
 ---
 
@@ -239,8 +243,11 @@ Lightweight Language Diver 2014
     WORKDIR /opt
     ENTRYPOINT tar cf - gauche
 
-Docker コンテナ → ホストにコピー。</br>
-（ホスト側のシェルで）
+---
+
+## イメージのビルドと起動
+
+<img src="./docker-app-generation.png" />
 
     !sh
     $ docker build -t gauche_heroku_app .
