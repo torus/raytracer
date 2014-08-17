@@ -191,6 +191,13 @@
                 (loop-x (+ x 1))))))
         (loop-y (+ y 1))))
 
+    image
+    )
+)
+
+(define (output-in-ppm-format frame image)
+  (let ((window-width (caddr frame))
+        (window-height (cadddr frame)))
     (let loop ((i 0))
       (when (< i (* window-width window-height))
         (write-block
@@ -198,11 +205,9 @@
           (floor (* (min 1 (vector4f-ref (vector-ref image i) 0)) 255))
           (floor (* (min 1 (vector4f-ref (vector-ref image i) 1)) 255))
           (floor (* (min 1 (vector4f-ref (vector-ref image i) 2)) 255))))
-        (loop (+ i 1))))
-    )
-)
+        (loop (+ i 1))))))
 
-(define (output-header frame)
+(define (output-ppm-header frame)
   (let ((window-width (caddr frame))
         (window-height (cadddr frame)))
     (display "P6\n")
@@ -213,8 +218,8 @@
   )
 
 (define (render spheres size frame)
-  (output-header frame)
-  (render-body spheres size frame)
+  (output-ppm-header frame)
+  (output-in-ppm-format frame (render-body spheres size frame))
   )
 
 (define (make-scene)
