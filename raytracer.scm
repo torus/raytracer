@@ -164,7 +164,7 @@
               (yyyyy surface-color spheres sphere phit nhit))
           (+ surface-color (sphere-emission-color sphere))))))
 
-(define (render spheres size frame)
+(define (render-body spheres size frame)
   (let* ((width (car size))
          (height (cadr size))
          (window-left (car frame))
@@ -191,37 +191,49 @@
                 (loop-x (+ x 1))))))
         (loop-y (+ y 1))))
 
-        (display "P6\n")
-        (display window-width)
-        (display " ")
-        (display window-height)
-        (display "\n255\n")
-        (let loop ((i 0))
-          (when (< i (* window-width window-height))
-                (write-block
-                 (u8vector
-                  (floor (* (min 1 (vector4f-ref (vector-ref image i) 0)) 255))
-                  (floor (* (min 1 (vector4f-ref (vector-ref image i) 1)) 255))
-                  (floor (* (min 1 (vector4f-ref (vector-ref image i) 2)) 255))))
-                (loop (+ i 1))))
+    (let loop ((i 0))
+      (when (< i (* window-width window-height))
+        (write-block
+         (u8vector
+          (floor (* (min 1 (vector4f-ref (vector-ref image i) 0)) 255))
+          (floor (* (min 1 (vector4f-ref (vector-ref image i) 1)) 255))
+          (floor (* (min 1 (vector4f-ref (vector-ref image i) 2)) 255))))
+        (loop (+ i 1))))
     )
+)
+
+(define (output-header frame)
+  (let ((window-width (caddr frame))
+        (window-height (cadddr frame)))
+    (display "P6\n")
+    (display window-width)
+    (display " ")
+    (display window-height)
+    (display "\n255\n"))
+  )
+
+(define (render spheres size frame)
+  (output-header frame)
+  (render-body spheres size frame)
+  )
+
+(define (make-scene)
+  (vector
+   (make-sphere (vector4f 0 -10004 -20) 10000 (vector4f 0.2 0.2 0.2) 0 0)
+   (make-sphere (vector4f 0 0 -20) 4 (vector4f 1 0.32 0.36) 1 0.5)
+   (make-sphere (vector4f 5 -1 -15) 2 (vector4f 0.9 0.76 0.46) 1 0)
+   (make-sphere (vector4f 5 0 -25) 3 (vector4f 0.65 0.77 0.97) 1 0)
+   (make-sphere (vector4f -5.5 0 -15) 3 (vector4f 0.90 0.90 0.90) 1 0)
+
+   ;; light
+   (make-sphere (vector4f 0 20 -30) 3 (vector4f 0 0 0) 0 0 (vector4f 3 3 3))
+   )
   )
 
 (define (main args)
-  (let1 spheres
-        (vector
-         (make-sphere (vector4f 0 -10004 -20) 10000 (vector4f 0.2 0.2 0.2) 0 0)
-         (make-sphere (vector4f 0 0 -20) 4 (vector4f 1 0.32 0.36) 1 0.5)
-         (make-sphere (vector4f 5 -1 -15) 2 (vector4f 0.9 0.76 0.46) 1 0)
-         (make-sphere (vector4f 5 0 -25) 3 (vector4f 0.65 0.77 0.97) 1 0)
-         (make-sphere (vector4f -5.5 0 -15) 3 (vector4f 0.90 0.90 0.90) 1 0)
-
-         ;; light
-         (make-sphere (vector4f 0 20 -30) 3 (vector4f 0 0 0) 0 0 (vector4f 3 3 3))
-         )
+  (let1 spheres (make-scene)
     (let-args (cdr args)
         ((size "s|size=ii" `(640 480))
          (frame "f|frame=iiii" `(0 0 640 480)))
       (render spheres size frame)))
-
   0)

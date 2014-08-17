@@ -61,7 +61,7 @@ jpeg: result.jpg
 	ppmtojpeg -quality 100 $^ > $@
 
 result.ppm: raytracer.scm
-	gosh raytracer.scm > $@
+	gosh raytracer.scm --size=64 48 --frame=0 0 64 48 > $@
 
 clean:
 	rm -f *.jpg *.ppm out*.jpg release upload-slug slug.tgz slug.json *~
