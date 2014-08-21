@@ -8,6 +8,15 @@ Lightweight Language Diver 2014
 
 ---
 
+# 自己紹介
+
+-   久井 亨（ひさい とおる）
+-   都内のゲーム制作会社のサーバサイドエンジニア
+    -   普段は Node.js
+-   一応 CPAN author（3 個だけ）
+
+---
+
 # あらすじ
 
 1.  Heroku のしくみ
@@ -35,7 +44,7 @@ Lightweight Language Diver 2014
 
 ---
 
-# 様々な言語に対応
+## 様々な言語、フレームワークに対応
 <img src="./heroku-languages.png"/>
 
 
@@ -55,6 +64,7 @@ Lightweight Language Diver 2014
 
 ---
 
+## Y Combinator にかぶれる
 <img src="./4822249468.jpg" />
 
 ---
@@ -295,6 +305,17 @@ Lightweight Language Diver 2014
                                     ,@(string-split opt-frame #/\s+/)))))
                         :content-type "image/x-portable-pixmap")))))
 
+
+---
+
+## リリースまでの道のり
+
+-   Slug を作る
+-   process_types を考える
+-   Slug をアロケート
+-   Slug をアップロード
+-   環境変数の設定
+-   リリース
 
 ---
 

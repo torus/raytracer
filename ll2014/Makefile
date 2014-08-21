@@ -1,5 +1,5 @@
 
-presentation.html: text.md
+index.html: text.md
 	landslide presentation.cfg
 
 open-pdf: ll2014-gauche-on-heroku.pdf
