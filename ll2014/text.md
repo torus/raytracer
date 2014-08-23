@@ -125,7 +125,7 @@ Lightweight Language Diver 2014
 
 ---
 
-# ビルド/デプロイ/リリース
+## ビルド/デプロイ/リリース
 
 -   Git は使わない
     -   Slug を作る
