@@ -48,25 +48,28 @@
   #?=(yield (redis-async-set sub "a" 123))
   #?=(yield (redis-async-get sub "a"))
 
-  #?=(yield (redis-async-subscribe sub "task"))
-
   (while #t
+    #?=(yield (redis-async-subscribe sub "task"))
     #?=(yield (redis-async-wait-for-publish! sub))
+    #?=(yield (redis-async-unsubscribe sub "task"))
     (let loop ()
       (let ((task (yield (redis-async-lpop pub "tasks"))))
-        (let-values (((id size frame)
-                      (match (read-from-string task)
-                        (`(,id ,size ,frame)
-                         (values id size frame)))))
-          (let1 image
-              (with-output-to-string
-                (lambda ()
-                  ((global-variable-ref raytracer-mod 'output-in-ppm-format)
-                   frame
-                   ((global-variable-ref raytracer-mod 'render-body) spheres size frame))))
-            (yield (redis-async-rpush pub "result" id))
-            (yield (redis-async-rpush pub "result" image))
-            (yield (redis-async-publish pub "done" task))))
+        (when task
+          (let-values (((id size frame)
+                        (match (read-from-string task)
+                          (`(,id ,size ,frame)
+                           (values id size frame)))))
+            (let1 image
+                (with-output-to-string
+                  (lambda ()
+                    ((global-variable-ref raytracer-mod 'output-in-ppm-format)
+                     frame
+                     ((global-variable-ref raytracer-mod 'render-body)
+                      spheres size frame))))
+              (yield (redis-async-rpush pub "result" id))
+              (yield (redis-async-rpush pub "result" image))
+              (yield (redis-async-publish pub "done" task))
+              (loop))))
       ))
 
     )

@@ -8,21 +8,7 @@
 
 <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
 <script type="text/javascript">
-console.log("!!")
-
 $("body").ready(function() {
-    // console.log("ready")
-    // $.ajax("/render.ppm?size=64+64&frame=0+32+64+8", {
-    //     // contentType: "arraybuffer",
-    // })
-    //     .done(function(data) {
-    //         // console.debug(data)
-    //         var blob = new Blob([data], {type: "image/x-portable-pixmap"})
-    //         console.debug(blob)
-    //         // var arr = new Uint8Array(data)
-    //         // console.debug(arr)
-    //     })
-
     var size = {width: 640, height: 480}
 
     var canvas = document.getElementById("field")
@@ -37,7 +23,8 @@ $("body").ready(function() {
 
 function load_ppm(size, frame, canvas) {
     var oReq = new XMLHttpRequest();
-    oReq.open("GET", "/render.ppm?size=" + [size.width, size.height].join("+")
+    oReq.open("GET", "/render_dist.ppm?size=" + [size.width, size.height].join("+")
+    // oReq.open("GET", "/render.ppm?size=" + [size.width, size.height].join("+")
               + "&frame=" + [frame.left, frame.top, frame.width, frame.height].join("+"),
               true);
     oReq.responseType = "arraybuffer";
