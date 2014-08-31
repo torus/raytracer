@@ -1,6 +1,6 @@
 APPNAME = 
 
-SOURCES = index.scm raytracer.scm public
+SOURCES = index.scm raytracer.scm worker.scm public
 
 usage:
 	@echo Usage: make release APPNAME=gauche-raytracer
@@ -35,7 +35,7 @@ slug.json: slug.tgz
 	curl -X POST \
 	-H 'Content-Type: application/json' \
 	-H 'Accept: application/vnd.heroku+json; version=3' \
-	-d '{"process_types":{"web":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.4/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.4/x86_64-unknown-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-unknown-linux-gnu/ -I ./ index.scm --port=$$PORT"}}' \
+	-d '{"process_types":{"web":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.4/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.4/x86_64-unknown-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-unknown-linux-gnu/ -I ./ index.scm --port=$$PORT","worker":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.4/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.4/x86_64-unknown-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-unknown-linux-gnu/ -I ./ worker.scm"}}' \
 	-n https://api.heroku.com/apps/$(APPNAME)/slugs > $@
 
 upload-slug: slug.json
