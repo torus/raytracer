@@ -39,26 +39,23 @@
        ))))
 
 (define (worker-main yield pub sub)
-  (define task-queued #f)
-
   (when *passwd*
     #?=(yield (redis-async-auth pub *passwd*))
     #?=(yield (redis-async-auth sub *passwd*)))
-
-  #?=(yield (redis-async-set sub "a" 123))
-  #?=(yield (redis-async-get sub "a"))
 
   (while #t
     #?=(yield (redis-async-subscribe sub "task"))
     #?=(yield (redis-async-wait-for-publish! sub))
     #?=(yield (redis-async-unsubscribe sub "task"))
+    #?=(dequeue-all! (ref sub 'recv-queue))
+
     (let loop ()
       (let ((task (yield (redis-async-lpop pub "tasks"))))
         (when task
-          (let-values (((id size frame)
+          (let-values (((request-id task-id size frame)
                         (match (read-from-string task)
-                          (`(,id ,size ,frame)
-                           (values id size frame)))))
+                          (`(,req-id ,task-id ,size ,frame)
+                           (values req-id task-id size frame)))))
             (let1 image
                 (with-output-to-string
                   (lambda ()
@@ -66,9 +63,9 @@
                      frame
                      ((global-variable-ref raytracer-mod 'render-body)
                       spheres size frame))))
-              (yield (redis-async-rpush pub "result" id))
-              (yield (redis-async-rpush pub "result" image))
-              (yield (redis-async-publish pub "done" task))
+              (yield (redis-async-publish
+                      pub #`"result-,request-id"
+                      (string-append (write-to-string `(,task-id)) image)))
               (loop))))
       ))
 

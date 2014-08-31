@@ -31,6 +31,11 @@
 (use gauche.parseopt)
 (use gl.math3d)
 
+(use text.tree)
+
+(use redis)
+(use redis.async)
+
 (define-constant *max-ray-depth* 5)
 (define-constant *PI* 3.141592653589793)
 (define-constant *ior* 1.1)
@@ -242,3 +247,99 @@
          (frame "f|frame=iiii" `(0 0 640 480)))
       (render spheres size frame)))
   0)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Distributed rendering
+
+(define *passwd* #f)
+(define (connect-redis)
+  (rxmatch-let (rxmatch #/(?:\w+):\/\/(?:\w+)(?::(\w+))?@([^:]+):(\d+)/
+                        (sys-getenv "REDISCLOUD_URL"))
+      (value passwd host port)
+    (set! *passwd* #?=passwd)
+    (redis-open-async #?=host #?=port)))
+
+
+(define (gen-update-proc size frame exit)
+  (lambda (pub sub)
+    (call/cc
+     (lambda (yield)
+       (define (wait-for-response proc)
+         (call/cc (lambda (next)
+                    (call/cc (lambda (cont)
+                               (proc (lambda (res)
+                                       (cont res)))
+                               (yield (lambda (pub sub) (next))))))))
+
+       (worker-main wait-for-response pub sub size frame exit)
+       ))))
+
+(define (worker-main yield pub sub size frame exit)
+  (when *passwd*
+    #?=(yield (redis-async-auth pub *passwd*))
+    #?=(yield (redis-async-auth sub *passwd*)))
+
+  (let* ((request-id (yield (redis-async-incr pub "last-request-id")))
+         (channel #`"result-,request-id")
+         (waiting-tasks (make-tree-map))
+         (results (make-tree-map)))
+    (yield (redis-async-subscribe sub channel))
+    (let loop ((x (car frame)) (y (cadr frame)) (task-id 0))
+      (when (< y (+ (cadr frame) (cadddr frame)))
+        (if (< x (+ (car frame) (caddr frame)))
+            (begin
+              (tree-map-put! waiting-tasks task-id #t)
+              ((redis-async-rpush pub "tasks"
+                                  `(,request-id ,task-id ,size (,x ,y 640 1)))
+               (lambda (res) res))
+              (loop (+ x 640) y (+ task-id 1)))
+            (loop (car frame) (+ y 1) task-id)))
+      )
+
+    (yield (redis-async-publish pub "task" request-id))
+
+    (let loop ()
+      (unless (tree-map-empty? waiting-tasks)
+        (let* ((res (yield (redis-async-wait-for-publish! sub)))
+               (port (open-input-string (ref res 2)))
+               (task-id (car (read port))))
+          (tree-map-delete! waiting-tasks task-id)
+          (tree-map-num-entries waiting-tasks)
+          (tree-map-put! results task-id (get-remaining-input-string port))
+          (loop)))
+      )
+    (yield (redis-async-unsubscribe sub channel))
+
+    (redis-close (ref pub 'conn))
+    (redis-close (ref sub 'conn))
+    (exit (tree-map-values results))
+    ))
+
+(define (main-dist args)
+  (let1 spheres (make-scene)
+    (let-args (cdr args)
+        ((size "s|size=ii" `(640 480))
+         (frame "f|frame=iiii" `(0 0 640 480)))
+      (render-dist spheres size frame)))
+  0)
+
+(define (render-dist spheres size frame)
+  (output-ppm-header frame)
+
+  (let ((pub (connect-redis))
+        (sub (connect-redis)))
+
+    (display
+     (tree->string
+      (call/cc
+       (lambda (exit)
+         ((gen-update-proc size frame exit) pub sub)
+
+         (while #t
+           (redis-async-update! pub)
+           (redis-async-update! sub)
+           (sys-nanosleep (expt 10 8)))      ; sleep 100ms
+         )
+       ))))
+  )

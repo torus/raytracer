@@ -23,7 +23,7 @@ $("body").ready(function() {
 
 function load_ppm(size, frame, canvas) {
     var oReq = new XMLHttpRequest();
-    oReq.open("GET", "/render_dist.ppm?size=" + [size.width, size.height].join("+")
+    oReq.open("GET", "/render-dist.ppm?size=" + [size.width, size.height].join("+")
     // oReq.open("GET", "/render.ppm?size=" + [size.width, size.height].join("+")
               + "&frame=" + [frame.left, frame.top, frame.width, frame.height].join("+"),
               true);

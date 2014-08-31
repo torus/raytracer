@@ -45,6 +45,22 @@
                                 ,@(string-split opt-frame #/\s+/)))))
                     :content-type "image/x-portable-pixmap")))))
 
+(define-http-handler "/render-dist.ppm"
+  (^[req app]
+    (random-source-randomize! default-random-source)
+    (let ([param-size (request-param-ref req "size")]
+          [param-frame (request-param-ref req "frame")])
+      (let ([opt-size (if param-size #`"-s ,param-size" "")]
+            [opt-frame (if param-frame #`"-f ,param-frame" "")]
+            [outfile #`"out,(random-integer 1000000).jpg"])
+        (respond/ok req
+                    (with-output-to-string
+                      (lambda ()
+                        ((global-variable-ref raytracer-mod 'main-dist)
+                         `(self ,@(string-split opt-size #/\s+/)
+                                ,@(string-split opt-frame #/\s+/)))))
+                    :content-type "image/x-portable-pixmap")))))
+
 (define-http-handler "/exit"
   (^[req app]
     (sys-exit 0)))
