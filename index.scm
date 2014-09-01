@@ -4,9 +4,10 @@
 (use makiki)
 
 (define (main args)
-  (let-args (cdr args) ([port "p|port=i" 8012])
+  (let-args (cdr args) ([port "p|port=i" 8012]
+                        [num-threads "t|num-threads=i" 5])
     (start-http-server :access-log #t :error-log #t :port port
-                       :num-threads 10
+                       :num-threads num-threads
                        :app-data (atom '())
                        :document-root "./public"))
   0)

@@ -35,7 +35,7 @@ slug.json: slug.tgz
 	curl -X POST \
 	-H 'Content-Type: application/json' \
 	-H 'Accept: application/vnd.heroku+json; version=3' \
-	-d '{"process_types":{"web":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.4/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.4/x86_64-unknown-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-unknown-linux-gnu/ -I ./ index.scm --port=$$PORT","worker":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.4/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.4/x86_64-unknown-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-unknown-linux-gnu/ -I ./ worker.scm"}}' \
+	-d '{"process_types":{"web":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.5_pre1/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.5_pre1/x86_64-unknown-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-unknown-linux-gnu/ -I ./ index.scm --port=$$PORT --num-threads=$$NUM_THREADS","worker":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.5_pre1/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.5_pre1/x86_64-unknown-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-unknown-linux-gnu/ -I ./ worker.scm"}}' \
 	-n https://api.heroku.com/apps/$(APPNAME)/slugs > $@
 
 upload-slug: slug.json
@@ -48,7 +48,7 @@ upload-slug: slug.json
 
 release: upload-slug
 	[ "x$(APPNAME)" != "x" ]
-	heroku config:set LD_LIBRARY_PATH=./gauche/lib --app=$(APPNAME)
+	heroku config:set LD_LIBRARY_PATH=./gauche/lib NUM_THREADS=1 --app=$(APPNAME)
 	curl -X POST \
 	-H "Accept: application/vnd.heroku+json; version=3" \
 	-H "Content-Type: application/json" \
