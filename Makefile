@@ -3,7 +3,7 @@ APPNAME =
 SOURCES = index.scm raytracer.scm worker.scm public
 
 usage:
-	@echo Usage: make release APPNAME=gauche-raytracer
+	@echo Usage: make release APPNAME=gauche-raytracer-16
 
 heroku-login:
 	heroku login
@@ -17,25 +17,25 @@ extract-slug-id: slug.json
 extract-slug-url: slug.json
 	echo `gosh extract-slug-url.scm < slug.json`
 
-slug.tgz: $(SOURCES) ../docker/gauche/app/gauche
+slug.tgz: $(SOURCES) ./gauche-heroku-cedar/app/gauche
 	rm -rf app
 	mkdir app
-	cp -R ../docker/gauche/app/gauche app/gauche
+	cp -R ./gauche-heroku-cedar/app/gauche app/gauche
 	cp -R $(SOURCES) app/
 	tar cfz $@ ./app
 
 rebuild-slug:
-	$(MAKE) -C ../docker/gauche
+	$(MAKE) -C ./gauche-heroku-cedar
 
-../docker/gauche/app/gauche:
-	$(MAKE) -C ../docker/gauche
+./gauche-heroku-cedar/app/gauche:
+	$(MAKE) -C ./gauche-heroku-cedar
 
 slug.json: slug.tgz
 	[ "x$(APPNAME)" != "x" ]
 	curl -X POST \
 	-H 'Content-Type: application/json' \
 	-H 'Accept: application/vnd.heroku+json; version=3' \
-	-d '{"process_types":{"web":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.5_pre1/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.5_pre1/x86_64-unknown-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-unknown-linux-gnu/ -I ./ index.scm --port=$$PORT --num-threads=$$NUM_THREADS","worker":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.5_pre1/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.5_pre1/x86_64-unknown-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-unknown-linux-gnu/ -I ./ worker.scm"}}' \
+	-d '{"process_types":{"web":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.6_pre6/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.6_pre6/x86_64-pc-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-pc-linux-gnu/ -I ./ index.scm --port=$$PORT --num-threads=$$NUM_THREADS","worker":"./gauche/bin/gosh -I ./gauche/share/gauche-0.9/0.9.6_pre6/lib -I ./gauche/share/gauche-0.9/site/lib -I ./gauche/lib/gauche-0.9/0.9.6_pre6/x86_64-pc-linux-gnu/ -I ./gauche/lib/gauche-0.9/site/x86_64-pc-linux-gnu/ -I ./ worker.scm"}}' \
 	-n https://api.heroku.com/apps/$(APPNAME)/slugs > $@
 
 upload-slug: slug.json
