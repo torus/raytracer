@@ -1,0 +1,3 @@
+[submodule "gauche-heroku-cedar"]
+	path = gauche-heroku-cedar
+	url = git@github.com:torus/gauche-heroku-cedar.git
