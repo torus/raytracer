@@ -1,7 +1,7 @@
 raytracer
 =========
 
-![Generated Image](https://github.com/torus/raytracer/raw/master/untitled.jpg)
+![Generated Image](https://github.com/torus/raytracer/raw/master/result.jpg)
 
 Requirements
 ------------
